@@ -93,3 +93,7 @@ test/run-test.js  가짜 API로 전체 흐름 테스트 (npm test)
 - 저장소는 비공개 (outbox에 예약 글이 있음)
 - 같은 계정 릴스와 카드는 publishAt을 2시간 이상 떨어뜨린다 (Claude가 편집할 때 지킴)
 - 발행 끝난 public/media 파일은 한 달에 한 번 지워도 된다 (플랫폼이 발행 때 한 번만 가져감)
+
+## 카드 만드는 도구
+
+`tools/make_cards.py <spec.json>` → `public/media/<folder>/cardNN.jpg` (1080×1350). spec에 `outbox` 칸이 있으면 `outbox/<id>.json`도 만든다. 장 종류·색·장수는 자유 (EDITING-teacher.md 참고). 필요: Python 3, Pillow, 한글 폰트.

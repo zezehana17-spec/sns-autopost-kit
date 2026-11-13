@@ -1,0 +1,26 @@
+{
+  "folder": "example-give-it-a-shot",
+  "theme": "forest",
+  "slides": [
+    { "type": "cover", "label": "오늘의 영어 표현", "title": "망설여질 때\n이 한마디", "sub": "수업에서 바로 써먹은 표현" },
+    { "type": "expression", "label": "표현", "en": "Give it a shot.", "ko": "한번 해 봐요.", "note": "결과가 확실하지 않아도 일단 시도해 보자고 할 때 써요." },
+    { "type": "dialogue", "label": "이렇게 써요", "lines": [
+      { "who": "A", "en": "I've never tried pottery before.", "ko": "도자기는 한 번도 안 해 봤어요." },
+      { "who": "B", "en": "Why not give it a shot this weekend?", "ko": "이번 주말에 한번 해 보는 건 어때요?" },
+      { "who": "A", "en": "Okay, I'll give it a shot.", "ko": "좋아요, 한번 해 볼게요." }
+    ] },
+    { "type": "list", "label": "비슷한 말", "title": "이렇게도 말해요", "items": [
+      "Give it a try.  해 봐요.",
+      "Have a go at it.  한번 도전해 봐요.",
+      "Why not?  안 될 거 있어요?"
+    ] },
+    { "type": "practice", "label": "내 문장으로", "prompt": "요즘 해 보고 싶은데 망설이는 게 있나요?", "blanks": 2, "hint": "예) I want to give running a shot this month." },
+    { "type": "cta", "title": "저장해두고", "sub": "수업 전에 한 번 더", "handle": "@my_english_class", "note": "매일 하나씩, 바로 쓰는 영어" }
+  ],
+  "outbox": {
+    "id": "example-give-it-a-shot-card",
+    "account": "main",
+    "publishAt": "",
+    "caption": "오늘 수업에서 나온 표현, Give it a shot.\n망설여질 때 '한번 해 봐요'라고 말하고 싶을 때 써요.\n\n댓글로 이번 주에 give it a shot 하고 싶은 걸 영어로 남겨 주세요.\n\n#영어회화 #오늘의영어 #영어표현 #성인영어 #영어공부"
+  }
+}
