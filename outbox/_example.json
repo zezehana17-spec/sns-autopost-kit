@@ -1,0 +1,7 @@
+{
+  "id": "2026-11-13-example-threads",
+  "account": "main",
+  "channel": "threads",
+  "publishAt": "2026-11-13 18:00",
+  "body": "파일 이름이 _로 시작하면 발행하지 않아요. 이 파일을 복사해서 이름을 바꾸면 예약 글이 됩니다."
+}

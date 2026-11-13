@@ -1,0 +1,15 @@
+{
+  "cleanUrls": true,
+  "functions": {
+    "api/*.js": {
+      "includeFiles": "outbox/**",
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/run",
+      "schedule": "0 23 * * *"
+    }
+  ]
+}

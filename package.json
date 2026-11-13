@@ -1,0 +1,8 @@
+{
+  "name": "sns-autopost-kit",
+  "private": true,
+  "type": "module",
+  "description": "사진만 찍으면 Claude가 편집하고 인스타·스레드에 자동 발행하는 키트",
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node test/run-test.js" }
+}

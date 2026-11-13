@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>관리 화면 · SNS 자동 발행</title>
+<style>
+  :root { --navy:#1f2a44; --cream:#f5efe3; --yel:#ffd640; --ink:#222; --line:#e3dccd; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: var(--cream); color: var(--ink); }
+  header { background: var(--navy); color: #fff; padding: 16px 20px; }
+  header h1 { margin:0; font-size: 18px; }
+  main { max-width: 860px; margin: 0 auto; padding: 16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+  h2 { font-size: 15px; margin: 0 0 10px; }
+  button { background: var(--navy); color:#fff; border:0; border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor:pointer; margin: 2px 4px 2px 0; }
+  button.light { background: #eee; color: var(--ink); }
+  input, textarea { width:100%; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:14px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+  .post { border-top:1px solid var(--line); padding:10px 0; }
+  .badge { display:inline-block; padding:2px 8px; border-radius: 10px; font-size: 12px; background:#eee; margin-right:4px; }
+  .s-done { background:#dff3e4; } .s-failed, .s-retry { background:#fde2e2; } .s-held { background:#fff3c4; } .s-processing, .s-publishing { background:#e3ecfb; }
+  .muted { color:#777; font-size:13px; } .err { color:#b42318; font-size:13px; white-space: pre-wrap; }
+  .ok { color:#127a3d; }
+  code { background:#f2f2f2; padding:2px 6px; border-radius:6px; word-break: break-all; }
+  #login { max-width: 360px; margin: 60px auto; }
+</style>
+</head>
+<body>
+<header><h1>SNS 자동 발행 · 관리 화면</h1></header>
+<main>
+  <div id="login" class="card">
+    <h2>관리 코드</h2>
+    <input id="code" type="password" placeholder="ADMIN_CODE">
+    <p><button onclick="login()">들어가기</button></p>
+  </div>
+
+  <div id="app" hidden>
+    <div class="card">
+      <h2>계정 확인</h2>
+      <button onclick="check()">계정 확인</button>
+      <div id="checkOut" class="muted"></div>
+    </div>
+
+    <div class="card">
+      <h2>예약·발행 목록 <span id="now" class="muted"></span></h2>
+      <div class="row"><button onclick="load()">새로고침</button></div>
+      <div id="problems"></div>
+      <div id="list"></div>
+    </div>
+
+    <div class="card">
+      <h2>테스트 스레드 글</h2>
+      <textarea id="testText" rows="2" placeholder="비우면 '자동 발행 연결 테스트'로 올라가요"></textarea>
+      <p><button onclick="testThreads()">테스트 글 발행</button> <span id="testOut" class="muted"></span></p>
+    </div>
+
+    <div class="card">
+      <h2>자동 실행 설정 (GitHub Actions 시크릿)</h2>
+      <p class="muted">GitHub 저장소 → Settings → Secrets and variables → Actions 에 아래 두 값을 넣어요.</p>
+      <button onclick="cronSetup()">값 보기</button>
+      <div id="cronOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>스레드 토큰 장기로 바꾸기</h2>
+      <p class="muted">메타 화면에서 1시간짜리 토큰만 나왔을 때 씁니다. Vercel에 THREADS_APP_SECRET이 있어야 해요.</p>
+      <input id="shortTok" type="password" placeholder="단기 토큰 붙여넣기">
+      <p><button onclick="threadsLong()">장기 토큰 만들기</button></p>
+      <div id="longOut"></div>
+    </div>
+  </div>
+</main>
+<script>
+const LABEL = { done:'발행완료', failed:'실패', retry:'다시 시도 예정', held:'멈춤', processing:'인스타 처리 중', publishing:'발행 중' };
+const CH = { reel:'릴스', card:'카드', threads:'스레드' };
+let code = localStorage.getItem('kitCode') || '';
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+async function api(action, extra = {}) {
+  const r = await fetch('/api/admin', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ code, action, ...extra }) });
+  const j = await r.json().catch(() => ({ ok:false, error:'응답 오류' }));
+  if (r.status === 401) { localStorage.removeItem('kitCode'); show(false); }
+  if (!j.ok) throw new Error(j.error || '오류');
+  return j;
+}
+function show(on) { document.getElementById('login').hidden = on; document.getElementById('app').hidden = !on; }
+async function login() {
+  code = document.getElementById('code').value.trim();
+  try { await api('list'); localStorage.setItem('kitCode', code); show(true); load(); } catch (e) { alert(e.message); }
+}
+async function load() {
+  try {
+    const d = await api('list');
+    document.getElementById('now').textContent = `· 지금 ${d.now}`;
+    document.getElementById('problems').innerHTML = d.problems.map((p) => `<div class="err">${esc(p.file)}: ${esc(p.problem)}</div>`).join('');
+    const list = document.getElementById('list');
+    if (!d.posts.length) { list.innerHTML = '<p class="muted">아직 글이 없어요. Claude가 outbox에 올리면 여기 보여요.</p>'; return; }
+    list.innerHTML = d.posts.slice().reverse().map((p) => {
+      const s = p.state.status || (p.due ? 'due' : 'wait');
+      const label = LABEL[s] || (p.due ? '곧 발행' : '예약됨');
+      const actions = s === 'done' ? (p.state.url ? `<a href="${esc(p.state.url)}" target="_blank" rel="noopener">발행된 글 보기 →</a>` : '')
+        : `<button onclick="act('publish_now','${esc(p.id)}')">지금 발행</button>`
+          + (s === 'held' ? `<button class="light" onclick="act('unhold','${esc(p.id)}')">멈춤 풀기</button>` : `<button class="light" onclick="act('hold','${esc(p.id)}')">멈추기</button>`)
+          + (['failed','retry'].includes(s) ? `<button class="light" onclick="act('reset','${esc(p.id)}')">처음부터 다시</button>` : '');
+      return `<div class="post">
+        <div><span class="badge">${esc(p.account)}</span><span class="badge">${esc(CH[p.channel] || p.channel)}</span><span class="badge s-${esc(s)}">${esc(label)}</span>
+        <span class="muted">${esc(p.publishAt || '바로')} · ${esc(p.id)}</span></div>
+        <div class="muted">${esc(p.preview)}</div>
+        ${p.state.error ? `<div class="err">${esc(p.state.error)} (시도 ${esc(p.state.attempts)}번)</div>` : ''}
+        <div>${actions}</div></div>`;
+    }).join('');
+  } catch (e) { alert(e.message); }
+}
+async function act(action, id) {
+  if (action === 'publish_now' && !confirm('지금 바로 발행할까요?')) return;
+  try { const d = await api(action, { id }); if (d.results?.[0]?.error) alert(d.results[0].error); } catch (e) { alert(e.message); }
+  load();
+}
+async function check() {
+  const out = document.getElementById('checkOut'); out.textContent = '확인 중…';
+  try {
+    const d = await api('check');
+    out.innerHTML = d.accounts.length ? d.accounts.map((a) => `<div><b>${esc(a.account)}</b> · 인스타 ${a.instagram ? `<span class="ok">${esc(a.instagram)}</span>` : `<span class="err">${esc(a.instagramError || '없음')}</span>`} · 스레드 ${a.threads ? `<span class="ok">${esc(a.threads)}</span>` : `<span class="err">${esc(a.threadsError || '없음')}</span>`}</div>`).join('')
+      : '<span class="err">토큰이 하나도 없어요. Vercel 환경변수를 확인해 주세요.</span>';
+    out.innerHTML += `<div class="ok">저장소 연결 OK · 사이트 ${esc(d.site)}</div>`;
+  } catch (e) { out.innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+async function testThreads() {
+  if (!confirm('스레드에 테스트 글을 올릴까요?')) return;
+  const out = document.getElementById('testOut'); out.textContent = '올리는 중…';
+  try { const d = await api('test_threads', { text: document.getElementById('testText').value }); out.innerHTML = d.url ? `<a href="${esc(d.url)}" target="_blank">올라갔어요 →</a>` : '올라갔어요'; }
+  catch (e) { out.innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+async function cronSetup() {
+  try { const d = await api('cron_setup'); document.getElementById('cronOut').innerHTML = `<p>SITE_URL <code>${esc(d.SITE_URL)}</code></p><p>CRON_SECRET <code>${esc(d.CRON_SECRET)}</code></p>`; }
+  catch (e) { alert(e.message); }
+}
+async function threadsLong() {
+  try { const d = await api('threads_long', { token: document.getElementById('shortTok').value }); document.getElementById('longOut').innerHTML = `<p>장기 토큰 (${esc(d.days)}일) — Vercel THREADS_TOKEN에 넣고 다시 배포하세요</p><p><code>${esc(d.token)}</code></p>`; }
+  catch (e) { alert(e.message); }
+}
+if (code) { show(true); load(); }
+</script>
+</body>
+</html>
